@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Link, useNavigate } from "react-router-dom";
 
-// 1. Validation Schema Ikomye
+// 1. Validation Schema Ikomye (Strict Validation)
 const signupSchema = z.object({
   firstName: z.string().min(2, "Andika izina neza"),
   lastName: z.string().min(2, "Andika izina rya kabiri neza"),
@@ -21,9 +21,7 @@ const signupSchema = z.object({
   message: "Password ntizihuye",
   path: ["confirmPassword"],
 }).refine((data) => {
-  // Logic ihatira Member guhitamo ijwi
   if (data.role === "member" && !data.voicePart) return false;
-  // Logic ihatira Leader kwandika umwanya (e.g. Conductor)
   if (data.role === "leader" && !data.position) return false;
   return true;
 }, {
@@ -40,37 +38,59 @@ export default function SignupForm() {
     defaultValues: { role: "member" },
   });
 
+  // --- IYI NEYO LOGIC USHAKA (LocalStorage DB) ---
   const onSubmit = async (data) => {
-    // 1. Hano niho hazaza API call ya Django (backend)
-    console.log("Registering User:", data);
+    try {
+      // 1. Fata abantu bose basanzwe muri LocalStorage
+      const existingUsers = JSON.parse(localStorage.getItem("all_users")) || [];
 
-    // 2. Simulation ya Auth Session
-    localStorage.setItem("user_token", "active_session_token"); 
-    localStorage.setItem("user_role", data.role);
-    
-    // 3. Dynamic Redirect
-    if (data.role === "leader") {
-      navigate("/dashboard/leader"); 
-    } else {
-      navigate("/dashboard/member");
+      // 2. Reba niba Email isanzwe irimo
+      const userExists = existingUsers.find((u) => u.email === data.email);
+      if (userExists) {
+        return alert("Iyi Email isanzwe ifite konti! Banza u-loginge.");
+      }
+
+      // 3. Ongeraho umuntu mushya muri array (Siba confirmPassword)
+      const { confirmPassword, ...userData } = data;
+      const updatedUsers = [...existingUsers, userData];
+      
+      // 4. Bika muri LocalStorage
+      localStorage.setItem("all_users", JSON.stringify(updatedUsers));
+
+      // 5. Automatic Login (Tanga Token n'uburenganzira)
+      localStorage.setItem("user_token", "kixy_session_" + Date.now()); 
+      localStorage.setItem("user_role", data.role);
+      
+      alert(`Wakoze kwiyandikisha neza nka ${data.role}!`);
+
+      // 6. Redirect bitewe na Role
+      if (data.role === "leader") {
+        navigate("/dashboard/leader"); 
+      } else {
+        navigate("/dashboard/member");
+      }
+    } catch (error) {
+      console.error("Error during registration:", error);
+      alert("Hari ikibazo kije! Ongera ugerageze.");
     }
   };
 
   const handleRoleChange = (newRole) => {
     setCurrentRole(newRole);
     setValue("role", newRole);
-    // Gukura ibyari byanditsemo iyo uhinduye role
     if (newRole === "member") setValue("position", "");
     if (newRole === "leader") setValue("voicePart", "");
   };
 
   return (
-    <div className="max-w-lg mx-auto my-10 p-8 pt-32 bg-[#121212] rounded-3xl border border-white/10 shadow-2xl">
+    <div className="max-w-lg mx-auto my-10 p-8 pt-20 bg-[#121212] rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
       <div className="text-center mb-8">
-        <h2 className="text-4xl font-black text-white italic tracking-tighter uppercase">
+        <h2 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">
           JOIN <span className="text-[#a3e635]">KIXY</span>
         </h2>
-        <p className="text-gray-500 text-sm font-medium">Create your {currentRole} account</p>
+        <p className="text-gray-500 text-xs font-bold uppercase mt-2 tracking-widest">
+           {currentRole} registration
+        </p>
       </div>
 
       {/* Role Switcher */}
@@ -91,38 +111,40 @@ export default function SignupForm() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {/* Names */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-[10px] uppercase font-bold text-gray-500 ml-1">First Name</label>
-            <input {...register("firstName")} className="w-full p-4 bg-black border border-white/10 rounded-xl text-white outline-none focus:border-[#a3e635] transition-all" placeholder="Dalvan" />
+            <input {...register("firstName")} className="w-full p-4 bg-black border border-white/10 rounded-xl text-white text-sm outline-none focus:border-[#a3e635] transition-all" placeholder="Dalvan" />
             {errors.firstName && <p className="text-red-500 text-[10px] ml-1">{errors.firstName.message}</p>}
           </div>
           <div className="space-y-1">
             <label className="text-[10px] uppercase font-bold text-gray-500 ml-1">Last Name</label>
-            <input {...register("lastName")} className="w-full p-4 bg-black border border-white/10 rounded-xl text-white outline-none focus:border-[#a3e635] transition-all" placeholder="Eric" />
+            <input {...register("lastName")} className="w-full p-4 bg-black border border-white/10 rounded-xl text-white text-sm outline-none focus:border-[#a3e635] transition-all" placeholder="Eric" />
             {errors.lastName && <p className="text-red-500 text-[10px] ml-1">{errors.lastName.message}</p>}
           </div>
         </div>
 
+        {/* Contact */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-[10px] uppercase font-bold text-gray-500 ml-1">Email</label>
-            <input {...register("email")} className="w-full p-4 bg-black border border-white/10 rounded-xl text-white outline-none focus:border-[#a3e635] transition-all" placeholder="info@kixy.com" />
+            <input {...register("email")} className="w-full p-4 bg-black border border-white/10 rounded-xl text-white text-sm outline-none focus:border-[#a3e635] transition-all" placeholder="info@kixy.com" />
             {errors.email && <p className="text-red-500 text-[10px] ml-1">{errors.email.message}</p>}
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] uppercase font-bold text-gray-500 ml-1">Phone Number</label>
-            <input {...register("phone")} className="w-full p-4 bg-black border border-white/10 rounded-xl text-white outline-none focus:border-[#a3e635] transition-all" placeholder="078..." />
+            <label className="text-[10px] uppercase font-bold text-gray-500 ml-1">Phone</label>
+            <input {...register("phone")} className="w-full p-4 bg-black border border-white/10 rounded-xl text-white text-sm outline-none focus:border-[#a3e635] transition-all" placeholder="078..." />
             {errors.phone && <p className="text-red-500 text-[10px] ml-1">{errors.phone.message}</p>}
           </div>
         </div>
 
-        {/* Dynamic Fields Based on Role */}
-        {currentRole === "member" && (
-          <div className="space-y-1 animate-in fade-in slide-in-from-top-2 duration-500">
+        {/* Dynamic Part */}
+        {currentRole === "member" ? (
+          <div className="space-y-1">
             <label className="text-[10px] uppercase font-bold text-gray-500 ml-1">Voice Part (Amajwi)</label>
-            <select {...register("voicePart")} className="w-full p-4 bg-black border border-white/10 rounded-xl text-white outline-none focus:border-[#a3e635] appearance-none cursor-pointer">
-              <option value="">Select your voice</option>
+            <select {...register("voicePart")} className="w-full p-4 bg-black border border-white/10 rounded-xl text-white text-sm outline-none focus:border-[#a3e635] appearance-none cursor-pointer">
+              <option value="">Select Voice</option>
               <option value="Soprano">Soprano</option>
               <option value="Alto">Alto</option>
               <option value="Tenor">Tenor</option>
@@ -130,44 +152,38 @@ export default function SignupForm() {
             </select>
             {errors.voicePart && <p className="text-red-500 text-[10px] ml-1">Gahunda y'amajwi ni ngombwa</p>}
           </div>
-        )}
-
-        {currentRole === "leader" && (
-          <div className="space-y-1 animate-in fade-in slide-in-from-top-2 duration-500">
-            <label className="text-[10px] uppercase font-bold text-gray-500 ml-1">Leader Position (Inshingano)</label>
-            <input {...register("position")} className="w-full p-4 bg-black border border-white/10 rounded-xl text-white outline-none focus:border-[#a3e635] transition-all" placeholder="e.g. Choir Conductor, President" />
-            {errors.position && <p className="text-red-500 text-[10px] ml-1">Andika inshingano yawe mu buyobozi</p>}
+        ) : (
+          <div className="space-y-1">
+            <label className="text-[10px] uppercase font-bold text-gray-500 ml-1">Leader Position</label>
+            <input {...register("position")} className="w-full p-4 bg-black border border-white/10 rounded-xl text-white text-sm outline-none focus:border-[#a3e635] transition-all" placeholder="e.g. Choir Conductor" />
+            {errors.position && <p className="text-red-500 text-[10px] ml-1">Andika inshingano yawe</p>}
           </div>
         )}
 
+        {/* Passwords */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-[10px] uppercase font-bold text-gray-500 ml-1">Password</label>
-            <input {...register("password")} type="password" className="w-full p-4 bg-black border border-white/10 rounded-xl text-white outline-none focus:border-[#a3e635] transition-all" />
+            <input {...register("password")} type="password" className="w-full p-4 bg-black border border-white/10 rounded-xl text-white text-sm outline-none focus:border-[#a3e635] transition-all" />
             {errors.password && <p className="text-red-500 text-[10px] ml-1">{errors.password.message}</p>}
           </div>
           <div className="space-y-1">
             <label className="text-[10px] uppercase font-bold text-gray-500 ml-1">Confirm</label>
-            <input {...register("confirmPassword")} type="password" className="w-full p-4 bg-black border border-white/10 rounded-xl text-white outline-none focus:border-[#a3e635] transition-all" />
+            <input {...register("confirmPassword")} type="password" className="w-full p-4 bg-black border border-white/10 rounded-xl text-white text-sm outline-none focus:border-[#a3e635] transition-all" />
             {errors.confirmPassword && <p className="text-red-500 text-[10px] ml-1">{errors.confirmPassword.message}</p>}
           </div>
         </div>
 
         <Button 
           type="submit" 
-          className="w-full py-8 text-xl font-black bg-[#a3e635] text-black hover:bg-[#bbf74d] rounded-2xl shadow-[0_15px_30px_rgba(163,230,53,0.2)] mt-6 transition-all active:scale-95"
+          className="w-full py-8 text-xl font-black bg-[#a3e635] text-black hover:bg-[#bbf74d] rounded-2xl shadow-[0_15px_30px_rgba(163,230,53,0.15)] mt-6 transition-all"
         >
-          JOIN KIXY SYSTEM
+          JOIN SYSTEM
         </Button>
 
-        <div className="text-center mt-6 text-sm text-gray-500 font-medium">
+        <div className="text-center mt-6 text-sm text-gray-500 font-medium tracking-tight">
           Already have an account?{" "}
-          <Link 
-            to="/login" 
-            className="text-[#a3e635] font-bold hover:underline"
-          >
-            Sign In Now
-          </Link>
+          <Link to="/login" className="text-[#a3e635] font-black hover:underline uppercase text-xs ml-1">Sign In</Link>
         </div>
       </form>
     </div>

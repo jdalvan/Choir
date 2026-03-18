@@ -1,32 +1,30 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Trash2, Phone, Music } from "lucide-react";
 
-const members = [
-  { id: 1, name: "Jean Paul", role: "Soprano", status: "Active" },
-  { id: 2, name: "Marie Claire", role: "Alto", status: "Active" },
-]
-
-export default function MembersTable() {
+export default function MemberTable({ members }) {
   return (
-    <div className="bg-[#121212] p-6 rounded-xl border border-white/10">
-      <h2 className="text-xl font-bold mb-4">Choir Members</h2>
-      <Table>
-        <TableHeader>
-          <TableRow className="border-white/10 hover:bg-transparent">
-            <TableHead className="text-white">Name</TableHead>
-            <TableHead className="text-white">Role</TableHead>
-            <TableHead className="text-white">Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {members.map((m) => (
-            <TableRow key={m.id} className="border-white/10">
-              <TableCell>{m.name}</TableCell>
-              <TableCell>{m.role}</TableCell>
-              <TableCell className="text-[#a3e635]">{m.status}</TableCell>
-            </TableRow>
+    <div className="overflow-x-auto bg-[#0a0a0a] rounded-2xl border border-white/5">
+      <table className="w-full text-left">
+        <thead className="border-b border-white/5 bg-black/50">
+          <tr>
+            <th className="p-4 text-[10px] uppercase font-black text-gray-500">Name</th>
+            <th className="p-4 text-[10px] uppercase font-black text-gray-500">Voice</th>
+            <th className="p-4 text-[10px] uppercase font-black text-gray-500">Phone</th>
+            <th className="p-4 text-[10px] uppercase font-black text-gray-500 text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {members.map((member, i) => (
+            <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02]">
+              <td className="p-4 font-bold text-sm uppercase italic">{member.firstName} {member.lastName}</td>
+              <td className="p-4 text-[#a3e635] text-[10px] font-black">{member.voicePart}</td>
+              <td className="p-4 text-gray-400 text-xs">{member.phone}</td>
+              <td className="p-4 text-right">
+                <button className="text-red-500/50 hover:text-red-500"><Trash2 size={16}/></button>
+              </td>
+            </tr>
           ))}
-        </TableBody>
-      </Table>
+        </tbody>
+      </table>
     </div>
-  )
+  );
 }
